@@ -33,7 +33,7 @@ pkg install git -y
 pip install flask requests
 
 # ✅ Clone the Tool
-git clone https://github.com/YourUsername/HCO-SMS-Snag
+git clone https://github.com/Hackerscolonyofficial/HCO-SMS-Snag.git
 
 # ✅ Navigate to the Tool Directory
 cd HCO-SMS-Snag
