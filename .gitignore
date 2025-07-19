@@ -1,0 +1,15 @@
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+
+# Ignore SMS output
+sms.txt
+
+# Ignore zip archives
+*.zip
+
+# Ignore Termux-specific output
+nohup.out
+
+# Ignore environment variables (if used)
+.env
