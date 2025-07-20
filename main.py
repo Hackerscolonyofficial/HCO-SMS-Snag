@@ -1,42 +1,33 @@
 import os
-import subprocess
-import time
 import re
+import time
 from flask import Flask
 
 app = Flask(__name__)
 
-def start_cloudflared():
-    print("[•] Starting Flask server...")
-    
-    # Start Flask server in background
-    subprocess.Popen(["python", "-m", "flask", "run", "--host=0.0.0.0", "--port=5000"], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-    time.sleep(3)
+def get_cloudflare_url():
+    print("[•] Fetching Cloudflare URL...")
+    try:
+        output = os.popen("ps aux | grep cloudflared").read()
+        if "cloudflared" not in output:
+            return "[×] Cloudflared tunnel not running. Please start it manually."
 
-    print("[•] Starting Cloudflared tunnel...")
-    tunnel_proc = subprocess.Popen(["cloudflared", "tunnel", "--url", "http://127.0.0.1:5000"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-    url = None
-    for _ in range(10):  # wait up to 10 seconds
-        line = tunnel_proc.stdout.readline()
-        if line == '':
-            break
-        match = re.search(r"https://[a-z0-9]+\.trycloudflare\.com", line)
+        # Try to extract the URL from the logs
+        logs = os.popen("logcat -d | grep trycloudflare").read()
+        match = re.search(r"https://[a-z0-9]+\.trycloudflare\.com", logs)
         if match:
-            url = match.group(0)
-            break
-
-    if url:
-        print("[•] Cloudflare Tunnel URL:", url)
-        return url
-    else:
-        print("[×] Failed to get Cloudflare URL. Make sure tunnel started properly.")
-        return "[×] Tunnel Error"
+            return match.group(0)
+        else:
+            return "[×] Could not find Cloudflare URL. Make sure the tunnel is active."
+    except Exception as e:
+        return f"[×] Error: {str(e)}"
 
 @app.route('/')
 def home():
     return "✅ HCO Tool Running..."
 
 if __name__ == '__main__':
-    tunnel_url = start_cloudflared()
-    print("[•] Public URL =>", tunnel_url)
+    print("[•] Starting Flask server...")
+    url = get_cloudflare_url()
+    print("[•] Cloudflare Tunnel URL:", url)
+    app.run(host="0.0.0.0", port=5000)
